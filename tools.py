@@ -49,7 +49,8 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
     """
     from os.path import isfile
     from pysbmy import param_file
-    from pysbmy.timestepping import StandardTimeStepping
+    from pysbmy.timestepping import StandardTimeStepping, BullFrogTimeStepping
+    from params import cosmo, cosmo_small_to_full_dict
 
     method = params_dict["method"]
     path = workdir + file_ext + "_" if file_ext else workdir
@@ -72,34 +73,35 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
     # Generate the time-stepping distribution
     if method in ["cola", "pm"]:
         ts_filename = path + "ts_" + method + ".h5"
-        print("> Generating time-stepping distribution...")
-        if not isfile(ts_filename) or force:
-            TimeStepDistribution = params_dict["TimeStepDistribution"]
-            ai = params_dict["ai"]
-            af = params_dict["af"]
-            nsteps = params_dict["nsteps"]
-            snapshots = np.full((nsteps), False)
-            TS = StandardTimeStepping(ai, af, snapshots, TimeStepDistribution)
-            TS.write(ts_filename)
-        else:
-            print("> Using existing time-stepping distribution.")
-    elif method == "bullfrog":
-        ts_filename = path + "ts_bullfrog.h5"
-        print("> Generating time-stepping distribution...")
+        print(">> Generating time-stepping distribution...")
         if not isfile(ts_filename) or force:
             TimeStepDistribution = params_dict["TimeStepDistribution"]
             ai = params_dict["ai"]
             af = params_dict["af"]
             nsteps = params_dict["nsteps"]
             forces = np.full(nsteps, True)
-            snapshots = np.full((nsteps), True)
+            snapshots = np.full((nsteps), False)
             TS = StandardTimeStepping(ai, af, snapshots, TimeStepDistribution, forces=forces)
             TS.write(ts_filename)
         else:
-            print("> Using existing time-stepping distribution.")
+            print(">> Using existing time-stepping distribution.")
+    elif method == "bullfrog":
+        ts_filename = path + "ts_bullfrog.h5"
+        print(">> Generating time-stepping distribution...")
+        if not isfile(ts_filename) or force:
+            # TimeStepDistribution = params_dict["TimeStepDistribution"]
+            ai = params_dict["ai"]
+            af = params_dict["af"]
+            nsteps = params_dict["nsteps"]
+            forces = np.full(nsteps, True)
+            snapshots = np.full((nsteps), False)
+            TS = BullFrogTimeStepping(ai, af, cosmo_small_to_full_dict(cosmo), snapshots, forces=forces)
+            TS.write(ts_filename)
+        else:
+            print(">> Using existing time-stepping distribution.")
 
     # Write the parameter file
-    print("> Generating parameter file...")
+    print(">> Generating parameter file...")
     if params_dict["method"] == "lpt":
         S = param_file(
             OutputRngStateLPT=simpath + "dummy.rng",
@@ -227,8 +229,54 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
 
     if not isfile(sbmy_path) or force:
         S.write(sbmy_path)
-        print("> Parameter file written to {}.".format(sbmy_path))
+        print(">> Parameter file written to {}.".format(sbmy_path))
     else:
-        print("> Parameter file already exists.")
+        print(">> Parameter file already exists.")
 
     return sbmy_path
+
+
+### This is a snippet to redirect C stdout to a file
+### https://dzone.com/articles/redirecting-all-kinds-stdout
+
+from contextlib import contextmanager
+import ctypes
+import io
+import os, sys
+import tempfile
+
+libc = ctypes.CDLL(None)
+c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
+
+@contextmanager
+def stdout_redirector(stream):
+    # The original fd stdout points to. Usually 1 on POSIX systems.
+    original_stdout_fd = sys.stdout.fileno()
+
+    def _redirect_stdout(to_fd):
+        """Redirect stdout to the given file descriptor."""
+        # Flush the C-level buffer stdout
+        libc.fflush(c_stdout)
+        # Flush and close sys.stdout - also closes the file descriptor (fd)
+        sys.stdout.close()
+        # Make original_stdout_fd point to the same file as to_fd
+        os.dup2(to_fd, original_stdout_fd)
+        # Create a new sys.stdout that points to the redirected fd
+        sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, 'wb'))
+
+    # Save a copy of the original stdout fd in saved_stdout_fd
+    saved_stdout_fd = os.dup(original_stdout_fd)
+    try:
+        # Create a temporary file and redirect stdout to it
+        tfile = tempfile.TemporaryFile(mode='w+b')
+        _redirect_stdout(tfile.fileno())
+        # Yield to caller, then redirect stdout back to the saved fd
+        yield
+        _redirect_stdout(saved_stdout_fd)
+        # Copy contents of temporary file to the given stream
+        tfile.flush()
+        tfile.seek(0, io.SEEK_SET)
+        stream.write(tfile.read())
+    finally:
+        tfile.close()
+        os.close(saved_stdout_fd)
