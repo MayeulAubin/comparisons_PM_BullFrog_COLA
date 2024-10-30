@@ -26,6 +26,7 @@ parser.add_argument('-Npm', type=int, default=128, help='Density/Potential mesh 
 parser.add_argument('--RedshiftLPT', type=float, default=24.0, help='Redshift of the LPT pre-simulation')
 parser.add_argument('--RedshiftFCs', type=float, default=0.0, help='Redshift of the final conditions (output)')
 parser.add_argument('-V','--verbose_smby',action='store_true',help='Display the Simbelmynë stdout in the console')
+parser.add_argument('-S', '--seed', type=int, default=None, help='User provided seed for the white noise')
 
 
 args = parser.parse_args()
@@ -41,7 +42,7 @@ SIMDIR = (
     "runs_sims/"  # need not be on same disk
 )
 
-from tools import generate_sim_params
+from tools import generate_sim_params, generate_white_noise_Field
 from params import (
     cosmo,
     z2a,
@@ -78,6 +79,10 @@ simpath = simdir
 # Path to the input matter power spectrum (generated later)
 input_power_file = simdir + "input_power.h5"
 
+# path to the initial white noise (generated later)
+input_white_noise_file = simdir + "input_white_noise.h5"
+input_seed_phase_file = simdir + "seed"
+
 L0 = L1 = L2 = args.L
 N0=args.N
 Np0=args.Np
@@ -105,6 +110,7 @@ common_params = {
 lpt_params = common_params.copy()
 lpt_params["method"] = "lpt"
 lpt_params["InputPowerSpectrum"] = input_power_file
+lpt_params["InputWhiteNoise"] = input_white_noise_file
 
 pm_params = common_params.copy()
 pm_params["method"] = "pm"
@@ -132,6 +138,24 @@ bullfrog_params["af"] = af
 bullfrog_params["RedshiftLPT"] = RedshiftLPT
 bullfrog_params["RedshiftFCs"] = RedshiftFCs
 bullfrog_params["Npm0"] = Npm0
+
+
+if not isfile(input_white_noise_file):
+    ## Get the seed for the white noise
+    if args.seed is None:
+        seed=np.random.randint(10**6)
+    else:
+        seed=args.seed
+
+    print(">> Generating the initial white noise...\n")
+
+    generate_white_noise_Field(seedphase=seed,
+                            fname_whitenoise=input_white_noise_file,
+                            seedname_whitenoise=input_seed_phase_file,
+                            force_phase=False,
+                            N=N0,
+                            L=L0,
+                            corner=-L0/2)
 
 
 print("\n> Generating simulations cards...\n")

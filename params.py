@@ -25,7 +25,7 @@ L0 = L1 = L2 = 250.0
 corner0 = corner1 = corner2 = -125.0
 N0 = 128
 Np0 = 128
-Npm0 = 128
+Npm0 = Npm1 = Npm2 = 128
 RedshiftLPT = 24.0
 RedshiftFCs = 0.0
 cosmo = {

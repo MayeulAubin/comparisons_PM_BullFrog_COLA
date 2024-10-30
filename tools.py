@@ -111,6 +111,8 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             corner0=corner0,
             corner1=corner1,
             corner2=corner2,
+            ICsMode=1, # use pregenerated white noise
+            InputWhiteNoise=params_dict["InputWhiteNoise"], # path the white noise file
             InputPowerSpectrum=params_dict["InputPowerSpectrum"],
             WriteInitialConditions=1,
             OutputInitialConditions=ICs,
@@ -280,3 +282,55 @@ def stdout_redirector(stream):
     finally:
         tfile.close()
         os.close(saved_stdout_fd)
+        
+
+## read file without stdout
+def read_field(*args):
+    from pysbmy.field import read_field as _read_field
+    with io.BytesIO() as f:
+        with stdout_redirector(f):
+            return _read_field(*args)
+        
+        
+
+def generate_white_noise_Field(seedphase, fname_whitenoise, seedname_whitenoise, force_phase=False,
+                                L=250.0,
+                                N=128,
+                                corner=-125.):
+    """
+    Generates a white noise realization in physical space using SeedSequence and
+    default_rng from numpy.random.   
+         
+    Parameters
+    ----------
+    seedphase : int or list of int
+        user-provided seed to generate the “initial” white noise realization
+    fname_whitenoise : str
+        name of the output white noise file
+    seedname_whitenoise : str
+        name of the output white noise seed file
+    force_phase : bool, optional, default=False
+        force recomputation of the white noise       
+    L : float
+        the size in Mpc of the box
+    N : int
+        the number of grid points
+    corner : float
+        the position of the corner in Mpc
+    """
+    from os.path import exists        
+    if not exists(fname_whitenoise) or force_phase:
+        from gc import collect
+        from numpy import random, save
+        from pysbmy.field import BaseField     
+               
+        rng = random.default_rng(seedphase)
+        save(seedname_whitenoise, rng.bit_generator.state)
+        with open(seedname_whitenoise + ".txt", "w") as f:
+            f.write(str(rng.bit_generator.state))
+        data = rng.standard_normal(size=N**3)
+        wn = BaseField(L, L, L, corner, corner, corner, 1, N, N, N, data)
+        del data
+        wn.write(fname_whitenoise)
+        del wn
+        collect()
