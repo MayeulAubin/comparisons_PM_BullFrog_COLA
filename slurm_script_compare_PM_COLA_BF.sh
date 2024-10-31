@@ -11,5 +11,5 @@
 #SBATCH -e ~/slurm_%x_%a_%A.err      # File to which STDERR will be written, %j inserts jobid, %x the job name, %a the array index, %A array's master job allocation number.
 
 conda activate SBMY
-python script_compare_PM_COLA_BullFrog ${SLURM_ARRAY_TASK_ID} -pm 1 2 5 10 20 50 100 200 -co 1 2 5 10 20 50 100 -bf 1 2 5 10 20 50 100 -L 2000 -Np 384 -N 768 -Npm 768 -V --RedshiftLPT 49.0
+python script_compare_PM_COLA_BullFrog ${SLURM_ARRAY_TASK_ID} -pm 1 2 5 10 20 50 100 200 -co 1 2 5 10 20 50 100 -bf 1 2 5 10 20 50 100 -L 2000 -Np 384 -N 384 -Npm 768 -V --RedshiftLPT 49.0
 exit
