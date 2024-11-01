@@ -22,6 +22,7 @@ __license__ = "GPLv3"
 """
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import cmocean
 
 fs = 18

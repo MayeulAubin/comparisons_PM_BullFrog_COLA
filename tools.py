@@ -34,22 +34,22 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
     ICs : str
         Path to the initial conditions.
     workdir : str
-        Directory where the parameter file will be written.
+        Directory where to store the parameter file.
     outdir : str
-        Directory where the output files of the simulations will be
-        written.
+        Directory where to store the simulation outputs.
     file_ext : str, optional
-        Prefix to add to the output file name.
+        Prefix for the output files.
 
     Returns
     -------
     sbmy_path : str
-        Path to the created parameter file.
+        Path to the parameter file generated.
 
     """
     from os.path import isfile
     from pysbmy import param_file
-    from pysbmy.timestepping import StandardTimeStepping
+    from pysbmy.timestepping import StandardTimeStepping, BullFrogTimeStepping
+    from params import cosmo, cosmo_small_to_full_dict
 
     method = params_dict["method"]
     path = workdir + file_ext + "_" if file_ext else workdir
@@ -57,9 +57,9 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
     sbmy_path = path + "example_" + method + ".sbmy"
 
     # Parameters shared by all methods for this run
-    Particles = params_dict["Np0"]
-    Mesh = params_dict["N0"]
-    BoxSize = params_dict["L0"]
+    Particles = params_dict["Np"]
+    Mesh = params_dict["N"]
+    BoxSize = params_dict["L"]
     corner0 = params_dict["corner0"]
     corner1 = params_dict["corner1"]
     corner2 = params_dict["corner2"]
@@ -87,13 +87,14 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
         ts_filename = path + "ts_bullfrog.h5"
         print("> Generating time-stepping distribution...")
         if not isfile(ts_filename) or force:
-            TimeStepDistribution = params_dict["TimeStepDistribution"]
             ai = params_dict["ai"]
             af = params_dict["af"]
             nsteps = params_dict["nsteps"]
             forces = np.full(nsteps, True)
-            snapshots = np.full((nsteps), True)
-            TS = StandardTimeStepping(ai, af, snapshots, TimeStepDistribution, forces=forces)
+            snapshots = np.full((nsteps), False)
+            TS = BullFrogTimeStepping(
+                ai, af, cosmo_small_to_full_dict(cosmo), snapshots, forces=forces
+            )
             TS.write(ts_filename)
         else:
             print("> Using existing time-stepping distribution.")
@@ -109,6 +110,8 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             corner0=corner0,
             corner1=corner1,
             corner2=corner2,
+            ICsMode=params_dict["ICsMode"],
+            InputWhiteNoise=params_dict["InputWhiteNoise"],  # None or str
             InputPowerSpectrum=params_dict["InputPowerSpectrum"],
             WriteInitialConditions=1,
             OutputInitialConditions=ICs,
@@ -139,7 +142,7 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             WriteLPTDensity=0,
             ModulePMCOLA=1,
             EvolutionMode=1,
-            ParticleMesh=params_dict["Npm0"],
+            ParticleMesh=params_dict["Npm"],
             TimeStepDistribution=ts_filename,
             RedshiftFCs=params_dict["RedshiftFCs"],
             WriteFinalDensity=1,
@@ -169,7 +172,7 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             WriteLPTDensity=0,
             ModulePMCOLA=1,
             EvolutionMode=2,
-            ParticleMesh=params_dict["Npm0"],
+            ParticleMesh=params_dict["Npm"],
             TimeStepDistribution=ts_filename,
             RedshiftFCs=params_dict["RedshiftFCs"],
             WriteDensities=1,
@@ -204,7 +207,7 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             WriteLPTDensity=0,
             ModulePMCOLA=1,
             EvolutionMode=4,
-            ParticleMesh=params_dict["Npm0"],
+            ParticleMesh=params_dict["Npm"],
             TimeStepDistribution=ts_filename,
             RedshiftFCs=params_dict["RedshiftFCs"],
             WriteDensities=1,
@@ -232,3 +235,62 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
         print("> Parameter file already exists.")
 
     return sbmy_path
+
+
+def read_field(*args):
+    from io import BytesIO
+    from low_level import stdout_redirector
+    from pysbmy.field import read_field as _read_field
+
+    with BytesIO() as f:
+        with stdout_redirector(f):
+            return _read_field(*args)
+
+
+def generate_white_noise_Field(
+    seedphase,
+    fname_whitenoise,
+    seedname_whitenoise,
+    L,
+    N,
+    corner,
+    force_phase=False,
+):
+    """
+    Generates a white noise realization in physical space using SeedSequence and
+    default_rng from numpy.random.
+
+    Parameters
+    ----------
+    seedphase : int or list of int
+        user-provided seed to generate the “initial” white noise realization
+    fname_whitenoise : str
+        name of the output white noise file
+    seedname_whitenoise : str
+        name of the output white noise seed file
+    force_phase : bool, optional, default=False
+        force recomputation of the white noise
+    L : float
+        the size in Mpc of the box
+    N : int
+        the number of grid points
+    corner : float
+        the position of the corner in Mpc
+    """
+    from os.path import exists
+
+    if not exists(fname_whitenoise) or force_phase:
+        from gc import collect
+        from numpy import random, save
+        from pysbmy.field import BaseField
+
+        rng = random.default_rng(seedphase)
+        save(seedname_whitenoise, rng.bit_generator.state)
+        with open(seedname_whitenoise + ".txt", "w") as f:
+            f.write(str(rng.bit_generator.state))
+        data = rng.standard_normal(size=N**3)
+        wn = BaseField(L, L, L, corner, corner, corner, 1, N, N, N, data)
+        del data
+        wn.write(fname_whitenoise)
+        del wn
+        collect()

@@ -21,13 +21,6 @@ __license__ = "GPLv3"
 """
 """
 
-L0 = L1 = L2 = 250.0
-corner0 = corner1 = corner2 = -125.0
-N0 = 128
-Np0 = 128
-Npm0 = 128
-RedshiftLPT = 24.0
-RedshiftFCs = 0.0
 cosmo = {
     "h": 0.6774,
     "Omega_m": 0.3089,
@@ -41,10 +34,6 @@ cosmo = {
 
 def z2a(z):
     return 1.0 / (1 + z)
-
-
-ai = z2a(RedshiftLPT)
-af = z2a(RedshiftFCs)
 
 
 def cosmo_small_to_full_dict(cosmo_min):
@@ -78,3 +67,6 @@ def cosmo_small_to_full_dict(cosmo_min):
         "WhichSpectrum": cosmo_min["WhichSpectrum"],
     }
     return cosmo_full
+
+
+BASELINE_SEEDPHASE = 300030898
