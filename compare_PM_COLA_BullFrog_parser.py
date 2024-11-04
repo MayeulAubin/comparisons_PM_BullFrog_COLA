@@ -129,6 +129,8 @@ verbose = args.verbosity
 force = args.force
 seedphase = args.seedphase if args.seedphase is not None else BASELINE_SEEDPHASE
 
+corner = -L / 2.0
+
 logdir = simdir + "logs/"
 nsim_pm = len(nsteps_pm_list)
 nsim_cola = len(nsteps_cola_list)
@@ -189,9 +191,9 @@ if __name__ == "__main__":
         "Np": Np,
         "N": N,
         "L": L,
-        "corner0": -L / 2,
-        "corner1": -L / 2,
-        "corner2": -L / 2,
+        "corner0": corner,
+        "corner1": corner,
+        "corner2": corner,
         "h": cosmo["h"],
         "Omega_m": cosmo["Omega_m"],
         "Omega_b": cosmo["Omega_b"],
@@ -306,7 +308,7 @@ if __name__ == "__main__":
             seedname_whitenoise=input_seed_phase_file,
             N=N,
             L=L,
-            corner=-L / 2,
+            corner=corner,
             force_phase=False,
         )
 

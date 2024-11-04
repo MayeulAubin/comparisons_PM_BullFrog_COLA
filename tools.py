@@ -83,6 +83,7 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             TS.write(ts_filename)
         else:
             print("> Using existing time-stepping distribution.")
+        StandardTimeStepping.read(ts_filename).plot(savepath=path + "ts_" + method + ".png")
     elif method == "bullfrog":
         ts_filename = path + "ts_bullfrog.h5"
         print("> Generating time-stepping distribution...")
@@ -98,6 +99,7 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             TS.write(ts_filename)
         else:
             print("> Using existing time-stepping distribution.")
+        BullFrogTimeStepping.read(ts_filename).plot(savepath=path + "ts_bullfrog.png")
 
     # Write the parameter file
     print("> Generating parameter file...")

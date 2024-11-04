@@ -21,15 +21,32 @@ __license__ = "GPLv3"
 """
 """
 
-cosmo = {
+WhichSpectrum = "EH"  # "EH" or "class"
+
+# TODO: cosmo_planck_wo_kmax and add k_max later in compare_PM_COLA_BullFrog_parser.py
+cosmo_planck = {
     "h": 0.6774,
     "Omega_m": 0.3089,
     "Omega_b": 0.0486,
     "n_s": 0.9667,
     "sigma8": 0.8159,
     "k_max": 10.0,
-    "WhichSpectrum": "EH",
+    "WhichSpectrum": WhichSpectrum,
 }
+
+# TODO: same as above + fix value for Omega_b
+cosmo_BF_article = {
+    "h": 0.677,
+    "Omega_m": 0.302,
+    "Omega_b": 0.001,
+    "n_s": 0.968,
+    "sigma8": 0.815,
+    "k_max": 10.0,
+    "WhichSpectrum": WhichSpectrum,
+}
+
+# cosmo = cosmo_planck
+cosmo = cosmo_BF_article
 
 
 def z2a(z):
