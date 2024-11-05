@@ -216,7 +216,7 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             OutputDensitiesBase=simpath + "density_bullfrog_",
             WriteSnapshots=1,
             OutputSnapshotsBase=simpath + "particles_bullfrog_",
-            WriteFinalSnapshot=1,
+            WriteFinalSnapshot=0,
             WriteFinalDensity=1,
             OutputFinalDensity=simpath + "final_density_bullfrog.h5",
             h=h,
