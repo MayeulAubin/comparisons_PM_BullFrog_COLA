@@ -70,7 +70,7 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
     sigma8 = params_dict["sigma8"]
 
     # Generate the time-stepping distribution
-    if method in ["cola", "pm"]:
+    if method!="lpt":
         ts_filename = path + "ts_" + method + ".h5"
         print("> Generating time-stepping distribution...")
         if not isfile(ts_filename) or force:
@@ -78,28 +78,21 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             ai = params_dict["ai"]
             af = params_dict["af"]
             nsteps = params_dict["nsteps"]
-            snapshots = np.full((nsteps), False)
-            TS = StandardTimeStepping(ai, af, snapshots, TimeStepDistribution)
-            TS.write(ts_filename)
-        else:
-            print("> Using existing time-stepping distribution.")
-        StandardTimeStepping.read(ts_filename).plot(savepath=path + "ts_" + method + ".png")
-    elif method == "bullfrog":
-        ts_filename = path + "ts_bullfrog.h5"
-        print("> Generating time-stepping distribution...")
-        if not isfile(ts_filename) or force:
-            ai = params_dict["ai"]
-            af = params_dict["af"]
-            nsteps = params_dict["nsteps"]
             forces = np.full(nsteps, True)
             snapshots = np.full((nsteps), False)
-            TS = BullFrogTimeStepping(
-                ai, af, cosmo_small_to_full_dict(cosmo), snapshots, forces=forces
-            )
+            if TimeStepDistribution != 3:
+                if method!="bullfrog":
+                    TS = StandardTimeStepping(ai, af, snapshots, TimeStepDistribution)
+                else:
+                    TS = StandardTimeStepping(ai, af, np.full((nsteps), True), TimeStepDistribution)
+                    TS.snapshots*=False
+            else:
+                snapshots = np.full((nsteps), True)
+                TS = BullFrogTimeStepping(ai, af, cosmo_small_to_full_dict(cosmo), snapshots, forces=forces)
             TS.write(ts_filename)
+            TS.plot(savepath=path + "ts_" + method + ".png")
         else:
             print("> Using existing time-stepping distribution.")
-        BullFrogTimeStepping.read(ts_filename).plot(savepath=path + "ts_bullfrog.png")
 
     # Write the parameter file
     print("> Generating parameter file...")

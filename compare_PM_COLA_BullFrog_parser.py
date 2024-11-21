@@ -57,7 +57,7 @@ parser.add_argument(
     "--nsteps_pm",
     type=int,
     nargs="*",
-    default=[50, 100],
+    default=[],
     help="Number of time steps for PM",
 )
 parser.add_argument(
@@ -65,7 +65,7 @@ parser.add_argument(
     "--nsteps_cola",
     type=int,
     nargs="*",
-    default=[5, 10, 20],
+    default=[],
     help="Number of time steps for COLA",
 )
 parser.add_argument(
@@ -73,7 +73,7 @@ parser.add_argument(
     "--nsteps_BullFrog",
     type=int,
     nargs="*",
-    default=[5, 10, 20],
+    default=[],
     help="Number of time steps for BullFrog",
 )
 parser.add_argument("-L", type=int, help="Length of the simulation box in Mpc/h.", default=2000)
@@ -110,6 +110,8 @@ parser.add_argument(
     "--seedphase", type=int, default=None, help="User-provided seed for the initial phase."
 )
 
+parser.add_argument("-ts","--timestepping",type=int, default=None, help="Time stepping distribution: 0 linear in a, 1 log in a, 2 exp in a, 3 bullfrog KDK linear in D")
+
 
 args = parser.parse_args()
 workdir = args.workdir
@@ -128,6 +130,9 @@ RedshiftFCs = args.RedshiftFCs
 verbose = args.verbosity
 force = args.force
 seedphase = args.seedphase if args.seedphase is not None else BASELINE_SEEDPHASE
+
+time_stepping_distribution = args.timestepping
+default_time_stepping_distribution = (time_stepping_distribution is None)
 
 corner = -L / 2.0
 
@@ -214,7 +219,7 @@ if __name__ == "__main__":
     # Parameters specific to PM
     pm_params = common_params.copy()
     pm_params["method"] = "pm"
-    pm_params["TimeStepDistribution"] = 0
+    pm_params["TimeStepDistribution"] = 0 if default_time_stepping_distribution else time_stepping_distribution
     pm_params["ai"] = ai
     pm_params["af"] = af
     pm_params["RedshiftLPT"] = RedshiftLPT
@@ -224,7 +229,7 @@ if __name__ == "__main__":
     # Parameters specific to COLA
     cola_params = common_params.copy()
     cola_params["method"] = "cola"
-    cola_params["TimeStepDistribution"] = 0
+    cola_params["TimeStepDistribution"] = 0 if default_time_stepping_distribution else time_stepping_distribution
     cola_params["ai"] = ai
     cola_params["af"] = af
     cola_params["RedshiftLPT"] = RedshiftLPT
@@ -234,7 +239,7 @@ if __name__ == "__main__":
     # Parameters specific to BullFrog
     bullfrog_params = common_params.copy()
     bullfrog_params["method"] = "bullfrog"
-    bullfrog_params["TimeStepDistribution"] = 0
+    bullfrog_params["TimeStepDistribution"] = 3 if default_time_stepping_distribution else time_stepping_distribution
     bullfrog_params["ai"] = ai
     bullfrog_params["af"] = af
     bullfrog_params["RedshiftLPT"] = RedshiftLPT
@@ -342,7 +347,7 @@ if __name__ == "__main__":
     print("> Starting PM simulations...")
     for i in range(nsim_pm):
         file_ext = f"nsteps{nsteps_pm_list[i]}"  # "pm" is already in the filename
-        if not isfile(simdir + f"{file_ext}_final_density_pm.h5"):
+        if not isfile(simdir + f"{file_ext}_final_density_pm.h5") or force:
             print(f">> Starting PM simulation {i}: {file_ext}")
             fname_simparfile = f"{wd}{file_ext}_example_pm.sbmy"
             fname_simlogs = f"{logdir}{file_ext}_pm.txt"
@@ -362,7 +367,7 @@ if __name__ == "__main__":
     print("> Starting COLA simulations...")
     for i in range(nsim_cola):
         file_ext = f"nsteps{nsteps_cola_list[i]}"  # "cola" is already in the filename
-        if not isfile(simdir + f"{file_ext}_final_density_cola.h5"):
+        if not isfile(simdir + f"{file_ext}_final_density_cola.h5") or force:
             print(f">> Starting COLA simulation {i}: {file_ext}")
             fname_simparfile = f"{wd}{file_ext}_example_cola.sbmy"
             fname_simlogs = f"{logdir}{file_ext}_cola.txt"
@@ -382,7 +387,7 @@ if __name__ == "__main__":
     print("> Starting BullFrog simulations...")
     for i in range(nsim_bullfrog):
         file_ext = f"nsteps{nsteps_bullfrog_list[i]}"  # "bullfrog" is already in the filename
-        if not isfile(simdir + f"{file_ext}_final_density_bullfrog.h5"):
+        if not isfile(simdir + f"{file_ext}_final_density_bullfrog.h5") or force:
             print(f">> Starting BullFrog simulation {i}: {file_ext}")
             fname_simparfile = f"{wd}{file_ext}_example_bullfrog.sbmy"
             fname_simlogs = f"{logdir}{file_ext}_bullfrog.txt"

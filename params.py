@@ -35,18 +35,18 @@ cosmo_planck = {
 }
 
 # # TODO: same as above
-# cosmo_BF_article = {
-#     "h": 0.677,
-#     "Omega_m": 0.302,
-#     "Omega_b": 0.049,  # not reported in the article
-#     "n_s": 0.968,
-#     "sigma8": 0.815,
-#     "k_max": 10.0,
-#     "WhichSpectrum": WhichSpectrum,
-# }
+cosmo_BF_article = {
+    "h": 0.677,
+    "Omega_m": 0.302,
+    "Omega_b": 0.049,  # not reported in the article
+    "n_s": 0.968,
+    "sigma8": 0.815,
+    "k_max": 10.0,
+    "WhichSpectrum": WhichSpectrum,
+}
 
-cosmo = cosmo_planck
-# cosmo = cosmo_BF_article
+# cosmo = cosmo_planck
+cosmo = cosmo_BF_article
 
 
 def z2a(z):
