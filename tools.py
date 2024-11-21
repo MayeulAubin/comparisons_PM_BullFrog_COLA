@@ -50,6 +50,8 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
     from pysbmy import param_file
     from pysbmy.timestepping import StandardTimeStepping, BullFrogTimeStepping
     from params import cosmo, cosmo_small_to_full_dict
+    from pysbmy.timestepping import StandardTimeStepping, BullFrogTimeStepping
+    from params import cosmo, cosmo_small_to_full_dict
 
     method = params_dict["method"]
     path = workdir + file_ext + "_" if file_ext else workdir
@@ -72,12 +74,13 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
     # Generate the time-stepping distribution
     if method!="lpt":
         ts_filename = path + "ts_" + method + ".h5"
-        print("> Generating time-stepping distribution...")
+        print(">> Generating time-stepping distribution...")
         if not isfile(ts_filename) or force:
             TimeStepDistribution = params_dict["TimeStepDistribution"]
             ai = params_dict["ai"]
             af = params_dict["af"]
             nsteps = params_dict["nsteps"]
+            forces = np.full(nsteps, True)
             forces = np.full(nsteps, True)
             snapshots = np.full((nsteps), False)
             if TimeStepDistribution != 3:
@@ -92,10 +95,10 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             TS.write(ts_filename)
             TS.plot(savepath=path + "ts_" + method + ".png")
         else:
-            print("> Using existing time-stepping distribution.")
+            print(">> Using existing time-stepping distribution.")
 
     # Write the parameter file
-    print("> Generating parameter file...")
+    print(">> Generating parameter file...")
     if params_dict["method"] == "lpt":
         S = param_file(
             OutputRngStateLPT=simpath + "dummy.rng",
@@ -225,9 +228,9 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
 
     if not isfile(sbmy_path) or force:
         S.write(sbmy_path)
-        print("> Parameter file written to {}.".format(sbmy_path))
+        print(">> Parameter file written to {}.".format(sbmy_path))
     else:
-        print("> Parameter file already exists.")
+        print(">> Parameter file already exists.")
 
     return sbmy_path
 
