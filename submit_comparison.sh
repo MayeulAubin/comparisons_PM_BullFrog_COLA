@@ -1,10 +1,10 @@
 #!/bin/sh
-#SBATCH --job-name=logN768z49
-#SBATCH -o /home/aubin/data/BullFrog/comparison_article/logs/logN768z49.out
-#SBATCH -e /home/aubin/data/BullFrog/comparison_article/logs/logN768z49.err
+#SBATCH --job-name=N768DKD
+#SBATCH -o /home/aubin/data/BullFrog/comparison_article/logs/N768DKD.out
+#SBATCH -e /home/aubin/data/BullFrog/comparison_article/logs/N768DKD.err
 #SBATCH -N 1                                    # Number of nodes (value or min-max)
 #SBATCH -n 64                                   # The number of tasks (i.e. cores) per node
-#SBATCH --time=1-00:00:00                         # Runtime in D-HH:MM, min 10 minutes
+#SBATCH --time=0-12:00:00                         # Runtime in D-HH:MM, min 10 minutes
 
 ##SBATCH --exclusive                            # Exclusive node usage
 ##SBATCH --mem=64G                              # Memory pool for all cores (see also --mem-per-cpu)
@@ -21,16 +21,17 @@ export OMP_NUM_THREADS=64
 python3 "/home/aubin/BullFrog/comparisons_PM_BullFrog_COLA/compare_PM_COLA_BullFrog_parser.py" \
     --workdir /home/aubin/data/BullFrog/comparison_article/params/ \
     --simdir_root /home/aubin/data/BullFrog/comparison_article/sims/ \
-    --name logN768z49 \
+    --name N768DKD \
     -L 2000 \
     --size 384 \
     --Np 384 \
     --Npm 768 \
-    --RedshiftLPT 49.0 \
+    --RedshiftLPT 1.0e12 \
     --RedshiftFC 0.0 \
     --verbosity 1 \
-    --force True \
-    -ts 0 \
-    -pm 1000 \
+    -ts 3 \
+    -cola 1 4 10 50 \
+    -bf 1 4 10 50 \
+    --DKD
 
 exit 0

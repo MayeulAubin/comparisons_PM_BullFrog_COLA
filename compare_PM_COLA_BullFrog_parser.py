@@ -110,7 +110,8 @@ parser.add_argument(
     "--seedphase", type=int, default=None, help="User-provided seed for the initial phase."
 )
 
-parser.add_argument("-ts","--timestepping",type=int, default=None, help="Time stepping distribution: 0 linear in a, 1 log in a, 2 exp in a, 3 bullfrog KDK linear in D")
+parser.add_argument("-ts","--timestepping",type=int, default=None, help="Time stepping distribution: 0 linear in a, 1 log in a, 2 exp in a, 3 linear in D")
+parser.add_argument("--DKD",action="store_true",help="Use the DKD time stepping scheme")
 
 
 args = parser.parse_args()
@@ -158,6 +159,7 @@ params = {
     "RedshiftFCs": RedshiftFCs,
     "verbose": verbose,
     "force": force,
+    "DKD": args.DKD,
 }
 
 # Save parameters for later use e.g. for plotting
@@ -204,6 +206,7 @@ if __name__ == "__main__":
         "Omega_b": cosmo["Omega_b"],
         "n_s": cosmo["n_s"],
         "sigma8": cosmo["sigma8"],
+        "DKD": args.DKD,
     }
 
     # Parameters for LPT simulations

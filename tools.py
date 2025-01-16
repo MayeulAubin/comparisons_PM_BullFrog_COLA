@@ -48,12 +48,11 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
     """
     from os.path import isfile
     from pysbmy import param_file
-    from pysbmy.timestepping import StandardTimeStepping, BullFrogTimeStepping
-    from params import cosmo, cosmo_small_to_full_dict
-    from pysbmy.timestepping import StandardTimeStepping, BullFrogTimeStepping
+    from pysbmy.timestepping import StandardTimeStepping
     from params import cosmo, cosmo_small_to_full_dict
 
     method = params_dict["method"]
+    DKD = params_dict["DKD"]
     path = workdir + file_ext + "_" if file_ext else workdir
     simpath = outdir + file_ext + "_" if file_ext else outdir
     sbmy_path = path + "example_" + method + ".sbmy"
@@ -80,18 +79,65 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             ai = params_dict["ai"]
             af = params_dict["af"]
             nsteps = params_dict["nsteps"]
-            forces = np.full(nsteps, True)
-            forces = np.full(nsteps, True)
-            snapshots = np.full((nsteps), False)
-            if TimeStepDistribution != 3:
+
+            match method:
+                case "pm":
+                    integrator = 0
+                case "cola":
+                    integrator = 2
+                case "bullfrog":
+                    integrator = 3
+
+            if DKD:
                 if method!="bullfrog":
-                    TS = StandardTimeStepping(ai, af, snapshots, TimeStepDistribution)
+                    TS = StandardTimeStepping(ai,
+                        af,
+                        nsteps=nsteps,
+                        integrator=integrator,
+                        DKD=True,
+                        force_misplaced=False,
+                        lightcone=False,
+                        snapshots=None,
+                        TimeStepDistribution=TimeStepDistribution,
+                        cosmo=cosmo_small_to_full_dict(cosmo),
+                        n_LPT=-2.5,
+                        )
+                    if method=="cola":
+                        TS._remove_operation(0) # Remove L_minus
+                        TS._remove_operation(1) # Remove F
+                    else:
+                        TS._remove_operation(0) # Remove F
+                    TS.split(1) # split Kick
+                    TS.insert_force(2) # insert force after half-kick
+                    if method=="cola":
+                        TS.insert_L_minus(2) # insert L_minus after half-kick
+                    TS.integrators[:2] = 4 # Set the first two operations to LPT
                 else:
-                    TS = StandardTimeStepping(ai, af, np.full((nsteps), True), TimeStepDistribution)
-                    TS.snapshots*=False
+                    TS = StandardTimeStepping(ai,
+                        af,
+                        nsteps=nsteps,
+                        integrator=3,
+                        DKD=True,
+                        force_misplaced=False,
+                        lightcone=False,
+                        snapshots=None,
+                        TimeStepDistribution=TimeStepDistribution,
+                        cosmo=cosmo_small_to_full_dict(cosmo),
+                        n_LPT=-2.5,
+                        )
             else:
-                snapshots = np.full((nsteps), True)
-                TS = BullFrogTimeStepping(ai, af, cosmo_small_to_full_dict(cosmo), snapshots, forces=forces)
+                TS = StandardTimeStepping(ai,
+                        af,
+                        nsteps=nsteps,
+                        integrator=integrator,
+                        DKD=False,
+                        force_misplaced=False,
+                        lightcone=False,
+                        snapshots=None,
+                        TimeStepDistribution=TimeStepDistribution,
+                        cosmo=cosmo_small_to_full_dict(cosmo),
+                        n_LPT=-2.5,
+                    )
             TS.write(ts_filename)
             TS.plot(savepath=path + "ts_" + method + ".png")
         else:
@@ -204,7 +250,7 @@ def generate_sim_params(params_dict, ICs, workdir, outdir, file_ext=None, force=
             WriteLPTSnapshot=0,
             WriteLPTDensity=0,
             ModulePMCOLA=1,
-            EvolutionMode=4,
+            EvolutionMode=1,
             ParticleMesh=params_dict["Npm"],
             TimeStepDistribution=ts_filename,
             RedshiftFCs=params_dict["RedshiftFCs"],
